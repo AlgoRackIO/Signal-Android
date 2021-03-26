@@ -42,7 +42,7 @@ import org.thoughtcrime.securesms.service.NotificationController;
 import org.thoughtcrime.securesms.util.BackupUtil;
 import org.thoughtcrime.securesms.util.GoogleDriveServiceHelper;
 
-import com.google.api.services.drive.model.FileList;
+//import com.google.api.services.drive.model.FileList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

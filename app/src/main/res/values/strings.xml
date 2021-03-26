@@ -382,6 +382,11 @@
     <string name="RestoreBackupFragment__choose_folder">Choose folder</string>
     <string name="RestoreBackupFragment__not_now">Not now</string>
 
+    <!-- GoogleDriveSignInFragment -->
+    <string name="GoogleDriveSignInFragment__google_drive_sign_in_title">Sign in to Google Drive?</string>
+    <string name="GoogleDriveSignInFragment__google_drive_sign_in">Sign in</string>
+    <string name="GoogleDriveSignInFragment__google_drive_sign_in_message">Sign in to be able to restore your backup from Google Drive.</string>
+
     <!-- BackupsPreferenceFragment -->
     <string name="BackupsPreferenceFragment__chat_backups">Chat backups</string>
     <string name="BackupsPreferenceFragment__backups_are_encrypted_with_a_passphrase">Backups are encrypted with a passphrase and stored on your device.</string>
