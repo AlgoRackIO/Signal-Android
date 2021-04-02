@@ -114,8 +114,6 @@ public class BackupsPreferenceFragment extends Fragment {
         data != null                                        &&
         data.getData() != null)
     {
-      GoogleDriveBackupFragment fragment = ((GoogleDriveBackupFragment) getChildFragmentManager().findFragmentById(R.id.fragment_google_drive_layout));
-      fragment.onReceiveBackupLocationRequest(data);
       BackupDialog.showEnableBackupDialog(requireContext(),
                                           data,
                                           StorageUtil.getDisplayPath(requireContext(), data.getData()),

@@ -91,13 +91,6 @@ public class GoogleDriveBackupFragment extends Fragment {
     }
 
     @RequiresApi(24)
-    public void onReceiveBackupLocationRequest(@Nullable Intent data) {
-        BackupDialog.showEnableBackupDialog(requireContext(),
-                data,
-                StorageUtil.getDisplayPath(requireContext(), data.getData()),
-                () -> Log.i(TAG, "Received backup location!"));
-    }
-    @RequiresApi(24)
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         switch (requestCode) {
@@ -174,15 +167,15 @@ public class GoogleDriveBackupFragment extends Fragment {
         try {
             FileList fileList = serviceHelper.queryFiles().get();
             String fileId = fileList.getFiles().get(0).getId();
-            serviceHelper.readFile(fileId, "")
-                    .addOnSuccessListener(pair -> {
-                        Log.d(TAG, "File Read Successfully");
-                        Log.d(TAG, "ID: " + pair.first);
-                        Log.d(TAG, "Content: " + pair.second);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, e);
-                    });
+//            serviceHelper.readFile(fileId)
+//                    .addOnSuccessListener(pair -> {
+//                        Log.d(TAG, "File Read Successfully");
+//                        Log.d(TAG, "ID: " + pair.first);
+//                        Log.d(TAG, "Content: " + pair.second);
+//                    })
+//                    .addOnFailureListener(e -> {
+//                        Log.e(TAG, e);
+//                    });
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -226,21 +219,21 @@ public class GoogleDriveBackupFragment extends Fragment {
     @RequiresApi(24)
     private void updateInfo() {
         AppCompatButton button = requireView().findViewById(R.id.signinButton);
-//        button.setOnClickListener(unused -> onBackupClicked());
+        button.setOnClickListener(unused -> onBackupClicked());
 //        button.setOnClickListener(unused -> createTempFile());
 //        button.setOnClickListener(unused -> readTempFile());
-        button.setOnClickListener(unused -> {
-            try {
-                BackupUtil.BackupInfo backupInfo = DriveBackupUtil.getLatestBackup(serviceHelper).get();
-                if (backupInfo != null) {
-                    Log.d(TAG, "LATEST BACKUP!!");
-                    Log.d(TAG, "FILE URI");
-                    Log.d(TAG, backupInfo.getUri().toString());
-                }
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+//        button.setOnClickListener(unused -> {
+//            try {
+//                BackupUtil.BackupInfo backupInfo = DriveBackupUtil.getLatestBackup(serviceHelper).get();
+//                if (backupInfo != null) {
+//                    Log.d(TAG, "LATEST BACKUP!!");
+//                    Log.d(TAG, "FILE URI");
+//                    Log.d(TAG, backupInfo.getUri().toString());
+//                }
+//            } catch (ExecutionException | InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        });
 //        button.setOnClickListener(unused -> openFilePicker());
         button.setText(R.string.BackupsPreferenceFragment__google_drive_backup);
     }
@@ -308,7 +301,7 @@ public class GoogleDriveBackupFragment extends Fragment {
 
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
                     // Its instantiation is required before handling any onClick actions.
-                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService, credential);
+                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService);
                     updateInfo();
                 })
                 .addOnFailureListener(exception -> Log.e(TAG, "Unable to sign in.", exception));

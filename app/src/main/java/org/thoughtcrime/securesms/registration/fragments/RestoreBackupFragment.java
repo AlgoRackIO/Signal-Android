@@ -56,7 +56,7 @@ import org.thoughtcrime.securesms.util.concurrent.SimpleTask;
 import java.io.IOException;
 import java.util.Locale;
 
-public final class RestoreBackupFragment extends BaseRegistrationFragment {
+public final class  RestoreBackupFragment extends BaseRegistrationFragment {
 
   private static final String TAG                            = Log.tag(RestoreBackupFragment.class);
   private static final short  OPEN_DOCUMENT_TREE_RESULT_CODE = 13782;

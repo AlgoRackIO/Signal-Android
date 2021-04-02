@@ -387,6 +387,10 @@
     <string name="GoogleDriveSignInFragment__google_drive_sign_in">Sign in</string>
     <string name="GoogleDriveSignInFragment__google_drive_sign_in_message">Sign in to be able to restore your backup from Google Drive.</string>
 
+    <!-- GoogleDriveRestoreFragment -->
+    <string name="GoogleDriveSignInFragment__google_drive_restore_backup_found">Backup Found!</string>
+    <string name="GoogleDriveSignInFragment__google_drive_restore_no_backup">No Backup Found</string>
+
     <!-- BackupsPreferenceFragment -->
     <string name="BackupsPreferenceFragment__chat_backups">Chat backups</string>
     <string name="BackupsPreferenceFragment__backups_are_encrypted_with_a_passphrase">Backups are encrypted with a passphrase and stored on your device.</string>

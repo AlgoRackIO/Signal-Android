@@ -1,38 +1,27 @@
 package org.thoughtcrime.securesms.util;
 
-import android.content.Context;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.util.Pair;
 import androidx.documentfile.provider.DocumentFile;
 
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.api.client.auth.oauth.OAuthParameters;
-import com.google.api.services.drive.Drive;
+import com.google.android.gms.tasks.Tasks;
 import com.google.api.services.drive.model.FileList;
 //import com.google.api.services.drive.Drive;
 //import com.google.api.services.drive.model.FileList;
 
 import org.signal.core.util.logging.Log;
-import org.thoughtcrime.securesms.ApplicationContext;
-import org.thoughtcrime.securesms.keyvalue.SignalStore;
 import org.thoughtcrime.securesms.util.BackupUtil.BackupInfo;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
+import java.util.concurrent.Executors;
 
 public class DriveBackupUtil {
     private static final String TAG = Log.tag(DriveBackupUtil.class);
@@ -48,8 +37,39 @@ public class DriveBackupUtil {
     }
 
     @RequiresApi(24)
-    private static <T> CompletableFuture<T> getCompleteableFuture(T data) {
+    private static <T> CompletableFuture<T> getCompletableFuture(T data) {
         return CompletableFuture.supplyAsync(() -> data);
+    }
+
+    public interface SyncCallback {
+        void run (@Nullable BackupInfo backupInfo);
+    }
+
+    @RequiresApi(24)
+    public static void getBackupSync(GoogleDriveServiceHelper driveService, Pair<String, String> file, SyncCallback callback) {
+        driveService.readFileSync(file.first, file.second)
+                .addOnSuccessListener(backupFile -> {
+                    BackupInfo backupInfoFile = null;
+                    if (backupFile != null) {
+                        backupInfoFile = getBackupInfoFromFile(backupFile);
+                    }
+                    callback.run(backupInfoFile);
+                })
+                .addOnFailureListener(Throwable::printStackTrace);
+    }
+
+    @RequiresApi(24)
+    public static CompletableFuture<BackupInfo> getBackup(GoogleDriveServiceHelper driveService, Pair<String, String> file) {
+        BackupInfo backupInfoFile = null;
+        try {
+            File backupFile = driveService.readFile(file.first, file.second).get();
+            if (backupFile != null) {
+                backupInfoFile = getBackupInfoFromFile(backupFile);
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return getCompletableFuture(backupInfoFile);
     }
 
     @RequiresApi(24)
@@ -58,12 +78,12 @@ public class DriveBackupUtil {
             FileList fileList = driveService.queryFiles().get();
             if (fileList != null) {
                 List<com.google.api.services.drive.model.File> files = fileList.getFiles();
-                if (files.size() == 0) return getCompleteableFuture(null);
+                if (files.size() == 0) return getCompletableFuture(null);
                 try {
-                    String latestBackupId = files.get(0).getId();
-                    File backupFile = driveService.readFile(latestBackupId).get();
+                    com.google.api.services.drive.model.File latestBackup = files.get(0);
+                    File backupFile = driveService.readFile(latestBackup.getId(), latestBackup.getName()).get();
                     if (backupFile != null) {
-                        return getCompleteableFuture(getBackupInfoFromFile(backupFile));
+                        return getCompletableFuture(getBackupInfoFromFile(backupFile));
                     }
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();
@@ -72,6 +92,6 @@ public class DriveBackupUtil {
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
-        return getCompleteableFuture(null);
+        return getCompletableFuture(null);
     }
 }

@@ -54,6 +54,7 @@ import javax.annotation.Nullable;
  * file picker UI via Storage Access Framework.
  */
 
+// TODO: Create Service factory for singleton
 public class GoogleDriveServiceHelper {
     private final String TAG = Log.tag(GoogleDriveServiceHelper.class);
 
@@ -61,25 +62,11 @@ public class GoogleDriveServiceHelper {
     private final Drive driveService;
 //    private final String APP_FOLDER = "appDataFolder";
     private final String APP_FOLDER = "drive";
-    private String OAuthToken = "";
+    public static GoogleDriveServiceHelper serviceHelper;
 
-    public GoogleDriveServiceHelper(Drive driveService, GoogleAccountCredential credential) {
-        this.driveService = driveService;
-        initToken(credential);
-    }
-
-    private void initToken(GoogleAccountCredential credential) {
-        Tasks.call(mExecutor, () -> {
-            String token = credential.getToken();
-            setOAuthToken(token);
-            return token;
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, e);
-        });
-    }
-
-    private void setOAuthToken(String token) {
-        OAuthToken = token;
+    public GoogleDriveServiceHelper(Drive driveService) {
+        this.driveService   = driveService;
+        serviceHelper       = this; // TODO: Temporary code to test
     }
 
     /**
@@ -196,30 +183,30 @@ public class GoogleDriveServiceHelper {
      * Opens the file identified by {@code fileId} and returns a {@link android.util.Pair} of its name and
      * contents.
      */
-    public Task<android.util.Pair<String, String>> readFile(String fileId, String test) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the metadata as a File object.
-            File metadata = driveService.files().get(fileId).execute();
-//            driveService.files().list()
-            String name = metadata.getName();
-
-//            driveService.files().get(fileId).setOauthToken(OAuthToken).setFileId(fileId).buildHttpRequestUsingHead().execute().getContent();
-
-            // Stream the file contents to a String.
-            try (InputStream is = driveService.files().get(fileId).setOauthToken(OAuthToken).setFileId(fileId).executeMediaAsInputStream();
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                StringBuilder stringBuilder = new StringBuilder();
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-                String contents = stringBuilder.toString();
-
-                return android.util.Pair.create(name, contents);
-            }
-        });
-    }
+//    public Task<android.util.Pair<String, String>> readFile(String fileId, String test) {
+//        return Tasks.call(mExecutor, () -> {
+//            // Retrieve the metadata as a File object.
+//            File metadata = driveService.files().get(fileId).execute();
+////            driveService.files().list()
+//            String name = metadata.getName();
+//
+////            driveService.files().get(fileId).setOauthToken(OAuthToken).setFileId(fileId).buildHttpRequestUsingHead().execute().getContent();
+//
+//            // Stream the file contents to a String.
+//            try (InputStream is = driveService.files().get(fileId).setOauthToken(OAuthToken).setFileId(fileId).executeMediaAsInputStream();
+//                 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+//                StringBuilder stringBuilder = new StringBuilder();
+//                String line;
+//
+//                while ((line = reader.readLine()) != null) {
+//                    stringBuilder.append(line);
+//                }
+//                String contents = stringBuilder.toString();
+//
+//                return android.util.Pair.create(name, contents);
+//            }
+//        });
+//    }
 
     /**
      * Opens the file identified by {@code fileId} and returns a {@link Pair} of its name and
@@ -274,6 +261,31 @@ public class GoogleDriveServiceHelper {
 //        return APP_FOLDER;
 //    }
 
+    @RequiresApi(24)
+    public Task<java.io.File> readFileSync(String fileId, String name) {
+        return Tasks.call(mExecutor, () -> {
+            try {
+                Drive.Files.Get driveGETRequest = driveService.files().get(fileId);
+                Log.d(TAG, "Requesting file from drive with ID: " + driveGETRequest.getFileId());
+//                driveGETRequest.setFields("files(id, name)");
+//                Log.d(TAG, "Set Drive Get Fields: " + driveGETRequest.getFields());
+//                Log.d(TAG, "Requesting Metadata");
+//                File metadata = driveGETRequest.execute();
+//                Log.d(TAG, "Metadata received");
+//                String[] filename = metadata.getName().split("\\.");
+                String[] filename = name.split("\\.");
+                java.io.File file = java.io.File.createTempFile(filename[0], "." + filename[1]);
+                OutputStream outputStream = new FileOutputStream(file);
+                Log.d(TAG, "Downloading file...");
+                driveGETRequest.executeMediaAndDownloadTo(outputStream);
+                Log.d(TAG, "File Downloaded!");
+                return file;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        });
+    }
     /**
      * Opens the file identified by {@code fileId} and returns a {@link Pair} of its name and
      * contents.
@@ -282,25 +294,29 @@ public class GoogleDriveServiceHelper {
 //    public Task<InputStream> readFile(String fileId) {
 //    public Task<OutputStream> readFile(String fileId) {
 //    public Task<java.io.File> readFile(String fileId) {
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public CompletableFuture<java.io.File> readFile(String fileId) {
-        return CompletableFuture.supplyAsync(new Supplier<java.io.File>() {
-            @Override
-            public java.io.File get() {
-                try {
-                    Drive.Files.Get driveGETRequest = driveService.files().get(fileId);
-                    Log.d(TAG, "Requesting file from drive with ID: " + driveGETRequest.getFileId());
-                    File metadata = driveGETRequest.execute();
-                    String[] filename = metadata.getName().split("\\.");
-                    java.io.File file = java.io.File.createTempFile(filename[0], "." + filename[1]);
-                    OutputStream outputStream = new FileOutputStream(file);
-                    driveGETRequest.executeMediaAndDownloadTo(outputStream);
-                    return file;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return null;
+    @RequiresApi(24)
+    public CompletableFuture<java.io.File> readFile(String fileId, String name) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Drive.Files.Get driveGETRequest = driveService.files().get(fileId);
+                Log.d(TAG, "Requesting file from drive with ID: " + driveGETRequest.getFileId());
+//                driveGETRequest.setFields("files(id, name)");
+//                Log.d(TAG, "Set Drive Get Fields: " + driveGETRequest.getFields());
+//                Log.d(TAG, "Requesting Metadata");
+//                File metadata = driveGETRequest.execute();
+//                Log.d(TAG, "Metadata received");
+//                String[] filename = metadata.getName().split("\\.");
+                String[] filename = name.split("\\.");
+                java.io.File file = java.io.File.createTempFile(filename[0], "." + filename[1]);
+                OutputStream outputStream = new FileOutputStream(file);
+                Log.d(TAG, "Downloading file...");
+                driveGETRequest.executeMediaAndDownloadTo(outputStream);
+                Log.d(TAG, "File Downloaded!");
+                return file;
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            return null;
         });
 //        return Tasks.call(mExecutor, () -> {
 //            if (true) return future.get();
@@ -439,15 +455,30 @@ public class GoogleDriveServiceHelper {
      * request Drive Full Scope in the <a href="https://play.google.com/apps/publish">Google
      * Developer's Console</a> and be submitted to Google for verification.</p>
      */
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public CompletableFuture<FileList> queryFiles() {
+    @RequiresApi(24)
+    public CompletableFuture<FileList>queryFiles() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return driveService.files().list().setSpaces(APP_FOLDER).execute();
+//                Drive.Files.List list = driveService.files().list()
+//                        .setFields("files(id,name,modifiedTime,size)")
+//                        .setSpaces(APP_FOLDER);
+                Drive.Files.List list = driveService.files().list().setFields("files(id,name,modifiedTime,size)").setSpaces(APP_FOLDER);
+//                list.getSpaces();
+                return list.execute();
+//                return fileList;
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
             }
+        }, mExecutor);
+    }
+
+    @RequiresApi(24)
+    public Task<FileList> queryFilesSync() {
+        return Tasks.call(mExecutor, () -> {
+            Drive.Files.List list = driveService.files().list().setFields("files(id,name,modifiedTime,size)").setSpaces("drive");
+            list.getFields();
+            return list.execute();
         });
     }
 

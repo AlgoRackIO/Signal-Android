@@ -333,15 +333,10 @@ dependencies {
     implementation 'com.google.android.exoplayer:extension-mediasession:2.9.1'
 
     // Google Drive and Sign in libs
-    implementation ('com.google.api-client:google-api-client:1.26.0') {
-        exclude group: 'org.apache.httpcomponents'
-        exclude group: 'com.google.guava', module: 'guava'
-        exclude group: 'com.google.guava', module: 'listenablefuture'
-    }
-    implementation ('com.google.http-client:google-http-client-gson:1.26.0') {
+    implementation ('com.google.http-client:google-http-client-gson:1.38.1') {
         exclude group: 'org.apache.httpcomponents'
     }
-    implementation ('com.google.http-client:google-http-client:1.26.0') {
+    implementation ('com.google.http-client:google-http-client:1.39.0') {
         exclude group: 'org.apache.httpcomponents'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'com.google.guava', module: 'listenablefuture'
@@ -354,7 +349,7 @@ dependencies {
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'com.google.guava', module: 'listenablefuture'
     }
-    implementation ('com.google.apis:google-api-services-drive:v3-rev136-1.25.0') {
+    implementation ('com.google.apis:google-api-services-drive:v3-rev20210315-1.31.0') {
         exclude group: 'org.apache.httpcomponents'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'com.google.guava', module: 'listenablefuture'

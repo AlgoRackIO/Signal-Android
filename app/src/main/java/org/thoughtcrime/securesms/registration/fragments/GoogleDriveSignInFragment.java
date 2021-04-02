@@ -37,7 +37,7 @@ public class GoogleDriveSignInFragment extends Fragment {
     private GoogleDriveServiceHelper serviceHelper;
 
     private static final int REQUEST_CODE_SIGN_IN = 1;
-    private static final int REQUEST_CODE_OPEN_DOCUMENT = 2;
+//    private static final int REQUEST_CODE_OPEN_DOCUMENT = 2;
     private static final int REQUEST_CODE_COMPLETE_AUTHORIZATION = 3;
 
     @Nullable
@@ -104,7 +104,8 @@ public class GoogleDriveSignInFragment extends Fragment {
 
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
                     // Its instantiation is required before handling any onClick actions.
-                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService, credential);
+                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService);
+                    Navigation.findNavController(requireView()).navigate(GoogleDriveSignInFragmentDirections.actionRestoreFromDrive());
                 })
                 .addOnFailureListener(exception -> Log.e(TAG, "Unable to sign in.", exception));
     }
