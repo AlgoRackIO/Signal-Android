@@ -16,7 +16,10 @@
 // */
 package org.thoughtcrime.securesms.jobs;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.net.Uri;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
@@ -70,15 +73,18 @@ public class GoogleDriveBackupJob extends BaseJob {
     public static final String TEMP_BACKUP_FILE_PREFIX  = ".backup";
     public static final String TEMP_BACKUP_FILE_SUFFIX  = ".tmp";
 
+    private static Context fragmentContext;
+
     private GoogleDriveBackupJob(@NonNull Job.Parameters parameters) {
         super(parameters);
     }
 
-    public static void enqueue(boolean force, @NonNull GoogleDriveServiceHelper helper) {
+    public static void enqueue(boolean force, @NonNull GoogleDriveServiceHelper helper, @NonNull Context context) {
         GoogleDriveBackupFragment.setSpinning();
-        driveServiceHelper = helper;
-        JobManager jobManager = ApplicationDependencies.getJobManager();
-        Parameters.Builder parameters = new Parameters.Builder()
+        fragmentContext                 = context;
+        driveServiceHelper              = helper;
+        JobManager jobManager           = ApplicationDependencies.getJobManager();
+        Parameters.Builder parameters   = new Parameters.Builder()
                 .setQueue(QUEUE)
                 .setMaxInstancesForFactory(1)
                 .setMaxAttempts(3);
@@ -96,6 +102,7 @@ public class GoogleDriveBackupJob extends BaseJob {
 //        }
     }
 
+    @SuppressLint("ShowToast")
     @Override
     protected void onRun() throws Exception {
         Log.i(TAG, "Executing backup job...");
@@ -180,6 +187,7 @@ public class GoogleDriveBackupJob extends BaseJob {
                             .addOnSuccessListener(id -> {
                                 Log.i(TAG, "Successfully uploaded backup to google drive");
                                 Log.i(TAG, "Deleting locally created file now... " + temporaryFile.delete());
+                                Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_success, Toast.LENGTH_LONG).show();
                                 GoogleDriveBackupFragment.cancelSpinning();
 //                            driveServiceHelper.storeBackup(id, "test-file", temporaryFile.toString())
 //                                    .addOnSuccessListener(unused -> {
@@ -191,6 +199,7 @@ public class GoogleDriveBackupJob extends BaseJob {
 //                                    });
                             })
                             .addOnFailureListener(e -> {
+                                Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_fail, Toast.LENGTH_LONG).show();
                                 Log.e(TAG, e);
                                 e.printStackTrace();
                             });

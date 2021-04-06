@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -136,7 +137,8 @@ public class GoogleDriveBackupFragment extends Fragment {
 //                    requestSignIn();
                 }
             default:
-                Log.d(TAG, "Google Sign In exit");
+                Toast.makeText(requireContext(), R.string.GoogleDriveBackupFragment__google_drive_backup_sign_in_fail, Toast.LENGTH_LONG).show();
+                Log.w(TAG, "Google Sign In failed");
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -160,7 +162,7 @@ public class GoogleDriveBackupFragment extends Fragment {
     @RequiresApi(29)
     private void onBackupClickedApi29() {
         Log.i(TAG, "Queuing drive backup...");
-        GoogleDriveBackupJob.enqueue(true, serviceHelper);
+        GoogleDriveBackupJob.enqueue(true, serviceHelper, requireContext());
     }
 
     private void onBackupClickedLegacy() {
@@ -169,7 +171,7 @@ public class GoogleDriveBackupFragment extends Fragment {
                 .ifNecessary()
                 .onAllGranted(() -> {
                     Log.i(TAG, "Queuing drive backup...");
-                    GoogleDriveBackupJob.enqueue(true, serviceHelper);
+                    GoogleDriveBackupJob.enqueue(true, serviceHelper, requireContext());
                 })
                 .withPermanentDenialDialog(getString(R.string.BackupsPreferenceFragment_signal_requires_external_storage_permission_in_order_to_create_backups))
                 .execute();
@@ -238,6 +240,7 @@ public class GoogleDriveBackupFragment extends Fragment {
                     // Its instantiation is required before handling any onClick actions.
                     serviceHelper = new GoogleDriveServiceHelper(googleDriveService);
                     updateInfo();
+                    Toast.makeText(requireContext(), R.string.GoogleDriveBackupFragment__google_drive_backup_sign_in_success, Toast.LENGTH_LONG).show();
                 })
                 .addOnFailureListener(exception -> Log.e(TAG, "Unable to sign in.", exception));
     }
