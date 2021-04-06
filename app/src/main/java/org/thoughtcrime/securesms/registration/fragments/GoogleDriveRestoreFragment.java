@@ -1,8 +1,10 @@
 package org.thoughtcrime.securesms.registration.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -40,6 +42,7 @@ import org.thoughtcrime.securesms.backup.FullBackupBase;
 import org.thoughtcrime.securesms.backup.FullBackupImporter;
 import org.thoughtcrime.securesms.crypto.AttachmentSecretProvider;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
+import org.thoughtcrime.securesms.keyvalue.SignalStore;
 import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.service.LocalBackupListener;
 import org.thoughtcrime.securesms.util.BackupUtil;
@@ -50,7 +53,9 @@ import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
@@ -62,6 +67,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
     private TextView                    restoreBackupSize;
     private TextView                    restoreBackupTime;
     private TextView                    restoreBackupProgress;
+    private TextView                    restoreBackupTitle;
     private CircularProgressButton      restoreButton;
     private GoogleDriveServiceHelper    serviceHelper;
     private View                        skipRestoreButton;
@@ -85,6 +91,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         restoreBackupSize       = view.findViewById(R.id.drive_backup_size_text);
         restoreBackupTime       = view.findViewById(R.id.drive_backup_created_text);
         skipRestoreButton       = view.findViewById(R.id.drive_skip_restore_button);
+        restoreBackupTitle      = view.findViewById(R.id.drive_restore_backup_title);
 
         restoreButton.setOnClickListener(v -> {
 //                if (true) return;
@@ -96,7 +103,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
                 setLoading();
                 DriveBackupUtil.getBackupSync(serviceHelper, latestBackup, backup -> {
                     Log.i(TAG, "Created cached backup file");
-                    Log.d(TAG, backup.getUri().toString());
+                    Log.d(TAG, Objects.requireNonNull(backup).getUri().toString());
                     Log.i(TAG, "Restoring backup...");
                     handleRestore(v.getContext(), backup);
                 });
@@ -197,7 +204,6 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         }.execute();
     }
 
-
     @Override
     public void onStart() {
         super.onStart();
@@ -233,6 +239,23 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == OPEN_DOCUMENT_TREE_RESULT_CODE && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+            Uri backupDirectoryUri = data.getData();
+            int takeFlags          = Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+
+            SignalStore.settings().setSignalBackupDirectory(backupDirectoryUri);
+            requireContext().getContentResolver()
+                    .takePersistableUriPermission(backupDirectoryUri, takeFlags);
+
+            enableBackups(requireContext());
+
+            Navigation.findNavController(requireView())
+                    .navigate(GoogleDriveRestoreFragmentDirections.actionRestore());
+        }
+    }
 
     @RequiresApi(29)
     private void displayConfirmationDialog(@NonNull Context context) {
@@ -253,7 +276,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
                     dialog.dismiss();
 
                     Navigation.findNavController(requireView())
-                            .navigate(RestoreBackupFragmentDirections.actionBackupRestored());
+                            .navigate(GoogleDriveRestoreFragmentDirections.actionRestore());
                 })
                 .setCancelable(false)
                 .show();
@@ -273,7 +296,10 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
      }
 
     private void cancelLoading() {
-        cancelSpinning(restoreButton);
+//        cancelSpinning(restoreButton);
+        restoreButton.setProgress(0);
+        restoreButton.setIndeterminateProgressMode(false);
+        restoreButton.setClickable(true);
         skipRestoreButton.setVisibility(View.VISIBLE);
     }
 
@@ -284,20 +310,29 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         setLoading();
         serviceHelper.queryFilesSync()
                 .addOnSuccessListener(files -> {
-                    //            FileList files = serviceHelper.queryFiles().get();
-                    if (files.size() > 0) {
+                    cancelLoading();
+                    List<File> fileList = files.getFiles();
+                    if (fileList.size() > 0) {
                         File latestFile = files.getFiles().get(0);
                         latestBackup = new Pair<>(latestFile.getId(), latestFile.getName());
                         Log.d(TAG, "Got File" + latestBackup.second);
                         restoreBackupSize.setText(getString(R.string.RegistrationActivity_backup_size_s, Util.getPrettyFileSize(latestFile.getSize())));
                         restoreBackupTime.setText(getString(R.string.RegistrationActivity_backup_timestamp_s, DateUtils.getExtendedRelativeTimeSpanString(requireContext(), Locale.getDefault(), latestFile.getModifiedTime().getValue())));
                     } else {
-                        restoreButton.setVisibility(View.INVISIBLE);
-                        Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip());
+//                        restoreButton.setVisibility(View.INVISIBLE);
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            restoreBackupTitle.setText(getString(R.string.GoogleDriveSignInFragment__google_drive_restore_backup_not_found));
+                            skipRestoreButton.setVisibility(View.INVISIBLE);
+                            restoreButton.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip()));
+                            restoreButton.setText(getString(R.string.RegistrationActivity_next));
+                        }, 500);
+//                        Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip());
                     }
                 })
-                .addOnFailureListener(Throwable::printStackTrace)
-                .addOnCompleteListener(unused -> cancelLoading());
+                .addOnFailureListener(e -> {
+                    e.printStackTrace();
+                    cancelLoading();
+                });
     }
 }
 

@@ -58,6 +58,8 @@ public class BackupsPreferenceFragment extends Fragment {
   private TextView        progressSummary;
 //  private FragmentManager fragmentManager;
 
+  private GoogleDriveBackupFragment driveBackupFragment;
+
   @Override
   public @Nullable View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
     return inflater.inflate(R.layout.fragment_backups, container, false);
@@ -65,17 +67,16 @@ public class BackupsPreferenceFragment extends Fragment {
 
   @Override
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    create          = view.findViewById(R.id.fragment_backup_create);
-    folder          = view.findViewById(R.id.fragment_backup_folder);
-    verify          = view.findViewById(R.id.fragment_backup_verify);
-    toggle          = view.findViewById(R.id.fragment_backup_toggle);
-    info            = view.findViewById(R.id.fragment_backup_info);
-    summary         = view.findViewById(R.id.fragment_backup_create_summary);
-    folderName      = view.findViewById(R.id.fragment_backup_folder_name);
-    progress        = view.findViewById(R.id.fragment_backup_progress);
-    progressSummary = view.findViewById(R.id.fragment_backup_progress_summary);
-//    fragmentManager = ((FragmentActivity) getActivity()).getSupportFragmentManager();
-//    updateFragmentLayout(new GoogleDriveBackupFragment(), "ADD");
+    create              = view.findViewById(R.id.fragment_backup_create);
+    folder              = view.findViewById(R.id.fragment_backup_folder);
+    verify              = view.findViewById(R.id.fragment_backup_verify);
+    toggle              = view.findViewById(R.id.fragment_backup_toggle);
+    info                = view.findViewById(R.id.fragment_backup_info);
+    summary             = view.findViewById(R.id.fragment_backup_create_summary);
+    folderName          = view.findViewById(R.id.fragment_backup_folder_name);
+    progress            = view.findViewById(R.id.fragment_backup_progress);
+    progressSummary     = view.findViewById(R.id.fragment_backup_progress_summary);
+    driveBackupFragment = (GoogleDriveBackupFragment) getChildFragmentManager().findFragmentById(R.id.fragment_google_drive_layout);
 
     toggle.setOnClickListener(unused -> onToggleClicked());
     create.setOnClickListener(unused -> onCreateClicked());
@@ -269,6 +270,7 @@ public class BackupsPreferenceFragment extends Fragment {
     create.setVisibility(View.VISIBLE);
     verify.setVisibility(View.VISIBLE);
     setBackupFolderName();
+    driveBackupFragment.toggleDriveBackup(true);
   }
 
   private void setBackupsDisabled() {
@@ -276,5 +278,6 @@ public class BackupsPreferenceFragment extends Fragment {
     create.setVisibility(View.GONE);
     folder.setVisibility(View.GONE);
     verify.setVisibility(View.GONE);
+    driveBackupFragment.toggleDriveBackup(false);
   }
 }

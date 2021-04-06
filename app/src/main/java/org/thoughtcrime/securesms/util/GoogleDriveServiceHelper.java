@@ -117,7 +117,7 @@ public class GoogleDriveServiceHelper {
 
 //            ByteArrayContent contentStream = ByteArrayContent.fromString("application/octet-stream", content);
 
-            File googleFile = driveService.files().create(
+                File googleFile = driveService.files().create(
                     metadata,
 //                    mediaContent
                     new ByteArrayContent("application/octet-stream", ((ByteArrayOutputStream) outputStream).toByteArray() )
@@ -491,10 +491,6 @@ public class GoogleDriveServiceHelper {
         intent.setType("text/plain");
 
         return intent;
-    }
-
-    public interface DriveCallback<T> {
-        T callback(Drive drive);
     }
 
 //    public <T> Task<T> executeWithDrive(DriveCallback<T> params) {

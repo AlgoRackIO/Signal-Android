@@ -37,6 +37,7 @@ import org.thoughtcrime.securesms.jobmanager.JobManager;
 import org.thoughtcrime.securesms.jobmanager.impl.ChargingConstraint;
 import org.thoughtcrime.securesms.keyvalue.SignalStore;
 import org.thoughtcrime.securesms.notifications.NotificationChannels;
+import org.thoughtcrime.securesms.preferences.GoogleDriveBackupFragment;
 import org.thoughtcrime.securesms.service.GenericForegroundService;
 import org.thoughtcrime.securesms.service.NotificationController;
 import org.thoughtcrime.securesms.util.BackupUtil;
@@ -74,6 +75,7 @@ public class GoogleDriveBackupJob extends BaseJob {
     }
 
     public static void enqueue(boolean force, @NonNull GoogleDriveServiceHelper helper) {
+        GoogleDriveBackupFragment.setSpinning();
         driveServiceHelper = helper;
         JobManager jobManager = ApplicationDependencies.getJobManager();
         Parameters.Builder parameters = new Parameters.Builder()
@@ -178,7 +180,7 @@ public class GoogleDriveBackupJob extends BaseJob {
                             .addOnSuccessListener(id -> {
                                 Log.i(TAG, "Successfully uploaded backup to google drive");
                                 Log.i(TAG, "Deleting locally created file now... " + temporaryFile.delete());
-
+                                GoogleDriveBackupFragment.cancelSpinning();
 //                            driveServiceHelper.storeBackup(id, "test-file", temporaryFile.toString())
 //                                    .addOnSuccessListener(unused -> {
 //                                        Log.i(TAG, "Successfully uploaded backup to google drive");
