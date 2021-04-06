@@ -53,7 +53,7 @@
 
         <action
             android:id="@+id/action_skip"
-            app:destination="@id/enterPhoneNumberFragment"
+            app:destination="@id/chooseBackupFragment"
             app:enterAnim="@anim/nav_default_enter_anim"
             app:exitAnim="@anim/nav_default_exit_anim"
             app:popEnterAnim="@anim/nav_default_pop_enter_anim"

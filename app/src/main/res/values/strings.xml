@@ -389,6 +389,7 @@
 
     <!-- GoogleDriveRestoreFragment -->
     <string name="GoogleDriveSignInFragment__google_drive_restore_backup_found">Backup Found!</string>
+    <string name="GoogleDriveSignInFragment__google_drive_restore_backup_not_found">No Backup Found!</string>
     <string name="GoogleDriveSignInFragment__google_drive_restore_no_backup">No Backup Found</string>
 
     <!-- BackupsPreferenceFragment -->
@@ -400,14 +401,19 @@
     <string name="BackupsPreferenceFragment__verify_backup_passphrase">Verify backup passphrase</string>
     <string name="BackupsPreferenceFragment__test_your_backup_passphrase">Test your backup passphrase and verify that it matches</string>
     <string name="BackupsPreferenceFragment__turn_on">Turn on</string>
-    <string name="BackupsPreferenceFragment__google_drive_backup">Backup to Drive</string>
-    <string name="BackupsPreferenceFragment__sign_in_google_drive">Google Drive Sign In</string>
     <string name="BackupsPreferenceFragment__turn_off">Turn off</string>
     <string name="BackupsPreferenceFragment__to_restore_a_backup">To restore a backup, install a new copy of Signal. Open the app and tap "Restore backup", then locate a backup file. %1$s</string>
     <string name="BackupsPreferenceFragment__learn_more">Learn more</string>
     <string name="BackupsPreferenceFragment__in_progress">In progress…</string>
     <string name="BackupsPreferenceFragment__d_so_far">%1$d so far…</string>
     <string name="BackupsPreferenceFragment_signal_requires_external_storage_permission_in_order_to_create_backups">Signal requires external storage permission in order to create backups, but it has been permanently denied. Please continue to app settings, select \"Permissions\" and enable \"Storage\".</string>
+
+    <!-- GoogleDriveBackupFragment -->
+
+    <string name="GoogleDriveBackupFragment__google_drive_backup">Backup to Drive</string>
+    <string name="GoogleDriveBackupFragment__google_drive_backup_description">Upload backup to your Google Drive storage.</string>
+    <string name="GoogleDriveBackupFragment__google_drive_backup_title">Create Google Drive Backup</string>
+    <string name="GoogleDriveBackupFragment__google_drive_sign_in">Google Drive Sign In</string>
 
 
     <!-- CustomDefaultPreference -->

@@ -38,7 +38,7 @@
 <!--            android:layout_marginEnd="32dp"-->
 <!--            android:gravity="center"-->
 <!--            android:text="@string/RegistrationActivity_restore_your_messages_and_media_from_a_local_backup"-->
-<!--            app:layout_constraintTop_toBottomOf="@+id/verify_header"-->
+<!--            app:layout_constraintTop_toBottomOf="@+id/drive_restore_backup_title"-->
 <!--            tools:layout_editor_absoluteX="0dp" />-->
 
         <TextView
@@ -46,8 +46,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            app:layout_constraintStart_toStartOf="@+id/verify_header"
-            app:layout_constraintTop_toBottomOf="@+id/verify_header"
+            app:layout_constraintStart_toStartOf="@+id/drive_restore_backup_title"
+            app:layout_constraintTop_toBottomOf="@+id/drive_restore_backup_title"
             tools:text="Backup created: 1 min ago" />
 
         <TextView
@@ -72,7 +72,7 @@
             tools:text="100 messages so far..." />
 
         <TextView
-            android:id="@+id/verify_header"
+            android:id="@+id/drive_restore_backup_title"
             style="@style/Signal.Text.Headline.Registration"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
