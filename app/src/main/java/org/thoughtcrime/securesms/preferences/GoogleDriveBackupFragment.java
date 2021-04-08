@@ -48,18 +48,20 @@ import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Fragment for Google Drive Sign in and Backup Button.
+ * Handles Authentication, uploads encrypted backup to drive, creates Google Drive Service Helper.
+ */
 public class GoogleDriveBackupFragment extends Fragment {
     private static final String TAG = Log.tag(GoogleDriveBackupFragment.class);
 
-    private static final int REQUEST_CODE_SIGN_IN = 1;
+    private static final int REQUEST_CODE_SIGN_IN                = 1;
     private static final int REQUEST_CODE_COMPLETE_AUTHORIZATION = 3;
 
     public static CircularProgressButton signInButton;
     public static CircularProgressButton backupButton;
 
     private LinearLayout backupContainer;
-
-    private GoogleDriveServiceHelper serviceHelper;
 
     @Nullable
     @Override
@@ -71,23 +73,17 @@ public class GoogleDriveBackupFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        signInButton        = view.findViewById(R.id.drive_sign_in_backup);
-        backupButton        = view.findViewById(R.id.drive_backup);
-        backupContainer     = view.findViewById(R.id.drive_backup_container);
+        signInButton    = view.findViewById(R.id.drive_sign_in_backup);
+        backupButton    = view.findViewById(R.id.drive_backup);
+        backupContainer = view.findViewById(R.id.drive_backup_container);
         backupButton.setOnClickListener(unused -> onBackupClicked());
         signInButton.setOnClickListener(unused -> requestSignIn());
-
-//        EventBus.getDefault().register(this);
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Override
     public void onResume() {
         super.onResume();
         toggleDriveBackup(TextSecurePreferences.isBackupEnabled(requireContext()));
-//        setBackupStatus();
-//        setBackupSummary();
-//        setInfo();
     }
 
     public void toggleDriveBackup(boolean isBackupEnabled) {
@@ -102,18 +98,7 @@ public class GoogleDriveBackupFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
-//        EventBus.getDefault().unregister(this);
     }
-
-//    @Subscribe(threadMode = ThreadMode.MAIN)
-//    public void onEvent() {
-////        if (TextSecurePreferences.isBackupEnabled(requireContext())) {
-////            requireView().findViewById(R.id.google_drive_backup_container).setVisibility(View.VISIBLE);
-////        } else {
-////            requireView().findViewById(R.id.google_drive_backup_container).setVisibility(View.GONE);
-////        }
-//    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -162,7 +147,7 @@ public class GoogleDriveBackupFragment extends Fragment {
     @RequiresApi(29)
     private void onBackupClickedApi29() {
         Log.i(TAG, "Queuing drive backup...");
-        GoogleDriveBackupJob.enqueue(true, serviceHelper, requireContext());
+        GoogleDriveBackupJob.enqueue(true, requireContext());
     }
 
     private void onBackupClickedLegacy() {
@@ -171,7 +156,7 @@ public class GoogleDriveBackupFragment extends Fragment {
                 .ifNecessary()
                 .onAllGranted(() -> {
                     Log.i(TAG, "Queuing drive backup...");
-                    GoogleDriveBackupJob.enqueue(true, serviceHelper, requireContext());
+                    GoogleDriveBackupJob.enqueue(true, requireContext());
                 })
                 .withPermanentDenialDialog(getString(R.string.BackupsPreferenceFragment_signal_requires_external_storage_permission_in_order_to_create_backups))
                 .execute();
@@ -186,7 +171,7 @@ public class GoogleDriveBackupFragment extends Fragment {
     }
 
     /**
-     * Updates the Google Drive Button based on account details
+     * Updates the Google Drive Button once signed in.
      */
     @RequiresApi(24)
     private void updateInfo() {
@@ -219,26 +204,17 @@ public class GoogleDriveBackupFragment extends Fragment {
     private void handleSignInResult(Intent result) {
         GoogleSignIn.getSignedInAccountFromIntent(result)
                 .addOnSuccessListener(googleAccount -> {
-                    Log.d(TAG, "Signed in successfully as: " + googleAccount.getEmail());
+                    Log.d(TAG, "Authenticated with email: " + googleAccount.getEmail());
                     // Use the authenticated account to sign in to the Drive service.
-                    GoogleAccountCredential credential =
-                            GoogleAccountCredential.usingOAuth2(
-                                    getActivity(), Collections.singleton(DriveScopes.DRIVE_FILE)
-                            );
+                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(getActivity(), Collections.singleton(DriveScopes.DRIVE_FILE));
                     credential.setSelectedAccount(googleAccount.getAccount());
-                    Log.d(TAG, "Account Set with name: " + credential.getSelectedAccount().name);
-                    HttpTransport transport = AndroidHttp.newCompatibleTransport();
-                    Drive googleDriveService =
-                            new Drive.Builder(
-                                    transport,
-                                    new GsonFactory(),
-                                    credential)
-                                    .setApplicationName("Signal")
-                                    .build();
+                    HttpTransport transport            = AndroidHttp.newCompatibleTransport();
+                    Drive googleDriveService           = new Drive.Builder(transport, new GsonFactory(), credential)
+                            .setApplicationName("Signal")
+                            .build();
 
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
-                    // Its instantiation is required before handling any onClick actions.
-                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService);
+                    GoogleDriveServiceHelper.createServiceHelper(googleDriveService);
                     updateInfo();
                     Toast.makeText(requireContext(), R.string.GoogleDriveBackupFragment__google_drive_backup_sign_in_success, Toast.LENGTH_LONG).show();
                 })

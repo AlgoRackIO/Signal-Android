@@ -24,8 +24,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
 
-import com.google.android.gms.tasks.Task;
-
 import org.signal.core.util.logging.Log;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.backup.BackupFileIOError;
@@ -46,25 +44,16 @@ import org.thoughtcrime.securesms.service.NotificationController;
 import org.thoughtcrime.securesms.util.BackupUtil;
 import org.thoughtcrime.securesms.util.GoogleDriveServiceHelper;
 
-//import com.google.api.services.drive.model.FileList;
-
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import ezvcard.util.IOUtils;
-
 public class GoogleDriveBackupJob extends BaseJob {
-    private static GoogleDriveServiceHelper driveServiceHelper;
-
     private static final String TAG                     = Log.tag(GoogleDriveBackupJob.class);
     public static final String KEY                      = "GoogleDriveBackupJob";
 
@@ -79,10 +68,9 @@ public class GoogleDriveBackupJob extends BaseJob {
         super(parameters);
     }
 
-    public static void enqueue(boolean force, @NonNull GoogleDriveServiceHelper helper, @NonNull Context context) {
+    public static void enqueue(boolean force, @NonNull Context context) {
         GoogleDriveBackupFragment.setSpinning();
         fragmentContext                 = context;
-        driveServiceHelper              = helper;
         JobManager jobManager           = ApplicationDependencies.getJobManager();
         Parameters.Builder parameters   = new Parameters.Builder()
                 .setQueue(QUEUE)
@@ -94,12 +82,6 @@ public class GoogleDriveBackupJob extends BaseJob {
             parameters.addConstraint(ChargingConstraint.KEY);
         }
         jobManager.add(new GoogleDriveBackupJob(parameters.build()));
-
-//        if (BackupUtil.isUserSelectionRequired(ApplicationDependencies.getApplication())) {
-//            jobManager.add(new LocalBackupJobApi29(parameters.build()));
-//        } else {
-//            jobManager.add(new GoogleDriveBackupJob(parameters.build()));
-//        }
     }
 
     @SuppressLint("ShowToast")
@@ -117,16 +99,6 @@ public class GoogleDriveBackupJob extends BaseJob {
         if (backupDirectoryUri == null || backupDirectoryUri.getPath() == null) {
             throw new IOException("Backup Directory has not been selected!");
         }
-
-//        Task<FileList> list = driveServiceHelper.queryFiles();
-
-//        list.addOnSuccessListener(result -> {
-//           result.getFiles().forEach(f -> {
-//               Log.d(TAG, f.getName());
-//           });
-//        });
-
-//        list.addOnFailureListener(Throwable::printStackTrace);
 
         try (NotificationController notification = GenericForegroundService.startForegroundTask(context,
                 context.getString(R.string.LocalBackupJob_creating_backup),
@@ -183,20 +155,19 @@ public class GoogleDriveBackupJob extends BaseJob {
 
                     stream.close();
 
-                    driveServiceHelper.createFile(fileName, buffer)
+                    GoogleDriveServiceHelper.serviceHelper.queryFilesSync()
+                            .addOnSuccessListener(fileList -> {
+                                fileList.getFiles().forEach(file -> {
+                                    GoogleDriveServiceHelper.serviceHelper.deleteFileSync(file.getId());
+                                });
+                            });
+
+                    GoogleDriveServiceHelper.serviceHelper.createFile(fileName, buffer)
                             .addOnSuccessListener(id -> {
                                 Log.i(TAG, "Successfully uploaded backup to google drive");
                                 Log.i(TAG, "Deleting locally created file now... " + temporaryFile.delete());
                                 Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_success, Toast.LENGTH_LONG).show();
                                 GoogleDriveBackupFragment.cancelSpinning();
-//                            driveServiceHelper.storeBackup(id, "test-file", temporaryFile.toString())
-//                                    .addOnSuccessListener(unused -> {
-//                                        Log.i(TAG, "Successfully uploaded backup to google drive");
-//                                    })
-//                                    .addOnFailureListener(e -> {
-//                                        Log.e(TAG, e);
-//                                        e.printStackTrace();
-//                                    });
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_fail, Toast.LENGTH_LONG).show();
@@ -228,7 +199,6 @@ public class GoogleDriveBackupJob extends BaseJob {
 
             BackupUtil.deleteOldBackups();
         }
-                // TODO: Use GoogleDriveServiceHelper to upload file to Google drive (and possibly delete Local file created for this by exporter?)
     }
 
 
@@ -276,246 +246,3 @@ public class GoogleDriveBackupJob extends BaseJob {
         }
     }
 }
-//
-//import android.Manifest;
-//
-//import androidx.annotation.NonNull;
-//
-//import com.google.api.client.auth.oauth2.Credential;
-//import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-//import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
-//
-//import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-//import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
-//import com.google.api.client.json.JsonFactory;
-//import com.google.api.client.util.store.FileDataStoreFactory;
-//import com.google.api.client.http.javanet.NetHttpTransport;
-//import com.google.api.services.drive.Drive;
-//import com.google.api.services.drive.DriveScopes;
-//import com.google.api.client.json.jackson2.JacksonFactory;
-//
-//import org.signal.core.util.logging.Log;
-//import org.thoughtcrime.securesms.R;
-//import org.thoughtcrime.securesms.backup.BackupFileIOError;
-//import org.thoughtcrime.securesms.backup.BackupPassphrase;
-//import org.thoughtcrime.securesms.backup.FullBackupExporter;
-//import org.thoughtcrime.securesms.crypto.AttachmentSecretProvider;
-//import org.thoughtcrime.securesms.database.DatabaseFactory;
-//import org.thoughtcrime.securesms.dependencies.ApplicationDependencies;
-//import org.thoughtcrime.securesms.jobmanager.Data;
-//import org.thoughtcrime.securesms.jobmanager.Job;
-//import org.thoughtcrime.securesms.jobmanager.JobManager;
-//import org.thoughtcrime.securesms.jobmanager.impl.ChargingConstraint;
-//import org.thoughtcrime.securesms.notifications.NotificationChannels;
-//import org.thoughtcrime.securesms.permissions.Permissions;
-//import org.thoughtcrime.securesms.service.GenericForegroundService;
-//import org.thoughtcrime.securesms.service.NotificationController;
-//import org.thoughtcrime.securesms.util.BackupUtil;
-//import org.thoughtcrime.securesms.util.StorageUtil;
-//
-//import java.io.File;
-//import java.io.FileNotFoundException;
-//import java.io.IOException;
-//import java.io.InputStream;
-//import java.io.InputStreamReader;
-//import java.text.SimpleDateFormat;
-//import java.util.Collections;
-//import java.util.Date;
-//import java.util.List;
-//import java.util.Locale;
-//
-//public class GoogleDriveBackupJob extends BaseJob {
-//
-//    public static final String APPLICATION_NAME         = "Signal-Android";
-//
-//    public static final String KEY                      = "GoogleDriveBackupJob";
-//
-//    private static final String TAG                     = Log.tag(GoogleDriveBackupJob.class);
-//
-//    private static final String QUEUE                   = "__DRIVE_BACKUP__";
-//
-//    public static final String TEMP_BACKUP_FILE_PREFIX  = ".backup";
-//
-//    public static final String TEMP_BACKUP_FILE_SUFFIX  = ".tmp";
-//
-//    private static final JsonFactory JSON_FACTORY = (JsonFactory) new JacksonFactory();
-//
-//    private static final String TOKENS_DIRECTORY_PATH = "tokens";
-//
-//    private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_METADATA_READONLY);
-//
-//    private static final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-//
-//    private static final String CREDENTIALS_FILE_PATH = "./credentials.json";
-//
-//    private static Drive driveService;
-//
-//    public static void enqueue(boolean force) {
-//        JobManager jobManager = ApplicationDependencies.getJobManager();
-//        Parameters.Builder parameters = new Parameters.Builder()
-//                .setQueue(QUEUE)
-//                .setMaxInstancesForFactory(1)
-//                .setMaxAttempts(3);
-//        if (force) {
-//            jobManager.cancelAllInQueue(QUEUE);
-//        } else {
-//            parameters.addConstraint(ChargingConstraint.KEY);
-//        }
-//
-//        if (BackupUtil.isUserSelectionRequired(ApplicationDependencies.getApplication())) {
-//            jobManager.add(new LocalBackupJobApi29(parameters.build()));
-//        } else {
-//            jobManager.add(new GoogleDriveBackupJob(parameters.build()));
-//        }
-//    }
-//
-//    /**
-//     * Creates an authorized Credential object.
-//     * @param HTTP_TRANSPORT The network HTTP Transport.
-//     * @return An authorized Credential object.
-//     * @throws IOException If the credentials.json file cannot be found.
-//     */
-//    private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
-//        // Load client secrets.
-//        InputStream in = GoogleDriveBackupJob.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-//        if (in == null) {
-//            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
-//        }
-//        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-//
-//        // Build flow and trigger user authorization request.
-//        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-//                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-//                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
-//                .setAccessType("offline")
-//                .build();
-//        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-//        return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-//    }
-//
-//    private GoogleDriveBackupJob(@NonNull Job.Parameters parameters) {
-//        super(parameters);
-////        InputStream in = GoogleDriveBackupJob.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-//        InputStream in = GoogleDriveBackupJob.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-//
-//        try {
-//            driveService = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
-//                    .setApplicationName(APPLICATION_NAME)
-//                    .build();
-//            GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-//            FileDataStoreFactory dataStoreFactory = new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH));
-//            GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-//                    HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-//                    .setDataStoreFactory(dataStoreFactory)
-//                    .setAccessType("online")
-//                    .build();
-//            LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-//        } catch (IOException e) {
-//            Log.e(TAG, "Error initialising Google Drive Backup, Reason: " + e.getMessage());
-//        }
-//    }
-//
-//    @Override
-//    protected void onRun() throws Exception {
-//        Log.i(TAG, "Executing backup job...");
-//
-//        BackupFileIOError.clearNotification(context);
-//
-//        if (!Permissions.hasAll(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-//            throw new IOException("No external storage permission!");
-//        }
-//
-//        try (NotificationController notification = GenericForegroundService.startForegroundTask(context,
-//                context.getString(R.string.LocalBackupJob_creating_backup),
-//                NotificationChannels.BACKUPS,
-//                R.drawable.ic_signal_backup))
-//        {
-//            notification.setIndeterminateProgress();
-//
-//            String backupPassword  = BackupPassphrase.get(context);
-//            File   backupDirectory = StorageUtil.getOrCreateBackupDirectory();
-//            String timestamp       = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US).format(new Date());
-//            String fileName        = String.format("signal-%s.backup", timestamp);
-//            File   backupFile      = new File(backupDirectory, fileName);
-//
-//            deleteOldTemporaryBackups(backupDirectory);
-//
-//            if (backupFile.exists()) {
-//                throw new IOException("Backup file already exists?");
-//            }
-//
-//            if (backupPassword == null) {
-//                throw new IOException("Backup password is null");
-//            }
-//
-//            File tempFile = File.createTempFile(TEMP_BACKUP_FILE_PREFIX, TEMP_BACKUP_FILE_SUFFIX, backupDirectory);
-//
-//            try {
-//                FullBackupExporter.export(context,
-//                        AttachmentSecretProvider.getInstance(context).getOrCreateAttachmentSecret(),
-//                        DatabaseFactory.getBackupDatabase(context),
-//                        tempFile,
-//                        backupPassword);
-//
-//                if (!tempFile.renameTo(backupFile)) {
-//                    Log.w(TAG, "Failed to rename temp file");
-//                    throw new IOException("Renaming temporary backup file failed!");
-//                }
-//            } catch (IOException e) {
-//                BackupFileIOError.postNotificationForException(context, e, getRunAttempt());
-//                throw e;
-//            } finally {
-//                if (tempFile.exists()) {
-//                    if (tempFile.delete()) {
-//                        Log.w(TAG, "Backup failed. Deleted temp file");
-//                    } else {
-//                        Log.w(TAG, "Backup failed. Failed to delete temp file " + tempFile);
-//                    }
-//                }
-//            }
-//
-//            BackupUtil.deleteOldBackups();
-//        }
-//    }
-//
-//    private static void deleteOldTemporaryBackups(@NonNull File backupDirectory) {
-//        for (File file : backupDirectory.listFiles()) {
-//            if (file.isFile()) {
-//                String name = file.getName();
-//                if (name.startsWith(TEMP_BACKUP_FILE_PREFIX) && name.endsWith(TEMP_BACKUP_FILE_SUFFIX)) {
-//                    if (file.delete()) {
-//                        Log.w(TAG, "Deleted old temporary backup file");
-//                    } else {
-//                        Log.w(TAG, "Could not delete old temporary backup file");
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    @Override
-//    protected boolean onShouldRetry(@NonNull Exception e) {
-//        return false;
-//    }
-//
-//    @Override
-//    public @NonNull Data serialize() {
-//        return Data.EMPTY;
-//    }
-//
-//    @Override
-//    public @NonNull String getFactoryKey() {
-//        return KEY;
-//    }
-//
-//    @Override
-//    public void onFailure() {
-//    }
-//
-//    public static class Factory implements Job.Factory<GoogleDriveBackupJob> {
-//        @Override
-//        public @NonNull GoogleDriveBackupJob create(@NonNull Parameters parameters, @NonNull Data data) {
-//            return new GoogleDriveBackupJob(parameters);
-//        }
-//    }
-//}

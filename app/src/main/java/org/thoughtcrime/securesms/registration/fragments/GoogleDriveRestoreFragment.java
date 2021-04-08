@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,7 +26,6 @@ import androidx.navigation.Navigation;
 
 import com.dd.CircularProgressButton;
 import com.google.api.services.drive.model.File;
-import com.google.api.services.drive.model.FileList;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
@@ -56,7 +54,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
 
@@ -94,19 +91,13 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         restoreBackupTitle      = view.findViewById(R.id.drive_restore_backup_title);
 
         restoreButton.setOnClickListener(v -> {
-//                if (true) return;
-                // TODO: Temporary. There's no need for it since we skip if there's no google drive backup.
-                if (latestBackup == null) {
-                    Log.i(TAG, "No Backup found!");
-                    return;
-                }
-                setLoading();
-                DriveBackupUtil.getBackupSync(serviceHelper, latestBackup, backup -> {
-                    Log.i(TAG, "Created cached backup file");
-                    Log.d(TAG, Objects.requireNonNull(backup).getUri().toString());
-                    Log.i(TAG, "Restoring backup...");
-                    handleRestore(v.getContext(), backup);
-                });
+            setLoading();
+            DriveBackupUtil.getBackupSync(serviceHelper, latestBackup, backup -> {
+                Log.i(TAG, "Created cached backup file, URI is:");
+                Log.d(TAG, Objects.requireNonNull(backup).getUri().toString());
+                Log.i(TAG, "Restoring backup...");
+                handleRestore(v.getContext(), backup);
+            });
         });
         skipRestoreButton.setOnClickListener(unused -> Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip()));
         initialiseView();
@@ -290,10 +281,10 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         }
     }
 
-     private void setLoading() {
+    private void setLoading() {
         setSpinning(restoreButton);
         skipRestoreButton.setVisibility(View.INVISIBLE);
-     }
+    }
 
     private void cancelLoading() {
 //        cancelSpinning(restoreButton);

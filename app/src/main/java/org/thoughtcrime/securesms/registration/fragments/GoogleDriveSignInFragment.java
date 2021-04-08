@@ -104,7 +104,7 @@ public class GoogleDriveSignInFragment extends Fragment {
 
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
                     // Its instantiation is required before handling any onClick actions.
-                    serviceHelper = new GoogleDriveServiceHelper(googleDriveService);
+                    serviceHelper = GoogleDriveServiceHelper.createServiceHelper(googleDriveService);
                     Navigation.findNavController(requireView()).navigate(GoogleDriveSignInFragmentDirections.actionRestoreFromDrive());
                 })
                 .addOnFailureListener(exception -> Log.e(TAG, "Unable to sign in.", exception));
