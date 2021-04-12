@@ -1,3 +1,19 @@
+///**
+// * Copyright (C) 2011 Whisper Systems
+// *
+// * This program is free software: you can redistribute it and/or modify
+// * it under the terms of the GNU General Public License as published by
+// * the Free Software Foundation, either version 3 of the License, or
+// * (at your option) any later version.
+// *
+// * This program is distributed in the hope that it will be useful,
+// * but WITHOUT ANY WARRANTY; without even the implied warranty of
+// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// * GNU General Public License for more details.
+// *
+// * You should have received a copy of the GNU General Public License
+// * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// */
 package org.thoughtcrime.securesms.registration.fragments;
 
 import android.annotation.SuppressLint;
@@ -45,7 +61,7 @@ import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.service.LocalBackupListener;
 import org.thoughtcrime.securesms.util.BackupUtil;
 import org.thoughtcrime.securesms.util.DateUtils;
-import org.thoughtcrime.securesms.util.DriveBackupUtil;
+import org.thoughtcrime.securesms.util.DriveRestoreUtil;
 import org.thoughtcrime.securesms.util.GoogleDriveServiceHelper;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
@@ -82,7 +98,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
 
         setDebugLogSubmitMultiTapView(view.findViewById(R.id.verify_header));
 
-        serviceHelper           = GoogleDriveServiceHelper.serviceHelper;
+        serviceHelper           = GoogleDriveServiceHelper.getServiceHelper();
         restoreBackupProgress   = view.findViewById(R.id.drive_backup_progress_text);
         restoreButton           = view.findViewById(R.id.drive_restore_button);
         restoreBackupSize       = view.findViewById(R.id.drive_backup_size_text);
@@ -92,7 +108,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
 
         restoreButton.setOnClickListener(v -> {
             setLoading();
-            DriveBackupUtil.getBackupSync(serviceHelper, latestBackup, backup -> {
+            DriveRestoreUtil.getBackupSync(latestBackup, backup -> {
                 Log.i(TAG, "Created cached backup file, URI is:");
                 Log.d(TAG, Objects.requireNonNull(backup).getUri().toString());
                 Log.i(TAG, "Restoring backup...");
@@ -287,7 +303,6 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
     }
 
     private void cancelLoading() {
-//        cancelSpinning(restoreButton);
         restoreButton.setProgress(0);
         restoreButton.setIndeterminateProgressMode(false);
         restoreButton.setClickable(true);
@@ -301,7 +316,7 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
         setLoading();
         serviceHelper.queryFilesSync()
                 .addOnSuccessListener(files -> {
-                    cancelLoading();
+//                    cancelLoading();
                     List<File> fileList = files.getFiles();
                     if (fileList.size() > 0) {
                         File latestFile = files.getFiles().get(0);
@@ -310,20 +325,16 @@ public class GoogleDriveRestoreFragment extends BaseRegistrationFragment {
                         restoreBackupSize.setText(getString(R.string.RegistrationActivity_backup_size_s, Util.getPrettyFileSize(latestFile.getSize())));
                         restoreBackupTime.setText(getString(R.string.RegistrationActivity_backup_timestamp_s, DateUtils.getExtendedRelativeTimeSpanString(requireContext(), Locale.getDefault(), latestFile.getModifiedTime().getValue())));
                     } else {
-//                        restoreButton.setVisibility(View.INVISIBLE);
                         new Handler(Looper.getMainLooper()).postDelayed(() -> {
                             restoreBackupTitle.setText(getString(R.string.GoogleDriveSignInFragment__google_drive_restore_backup_not_found));
                             skipRestoreButton.setVisibility(View.INVISIBLE);
                             restoreButton.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip()));
                             restoreButton.setText(getString(R.string.RegistrationActivity_next));
                         }, 500);
-//                        Navigation.findNavController(requireView()).navigate(GoogleDriveRestoreFragmentDirections.actionSkip());
                     }
                 })
-                .addOnFailureListener(e -> {
-                    e.printStackTrace();
-                    cancelLoading();
-                });
+                .addOnFailureListener(Throwable::printStackTrace)
+                .addOnCompleteListener(unused -> cancelLoading());
     }
 }
 

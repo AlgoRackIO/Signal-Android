@@ -1,8 +1,23 @@
+///**
+// * Copyright (C) 2011 Whisper Systems
+// *
+// * This program is free software: you can redistribute it and/or modify
+// * it under the terms of the GNU General Public License as published by
+// * the Free Software Foundation, either version 3 of the License, or
+// * (at your option) any later version.
+// *
+// * This program is distributed in the hope that it will be useful,
+// * but WITHOUT ANY WARRANTY; without even the implied warranty of
+// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// * GNU General Public License for more details.
+// *
+// * You should have received a copy of the GNU General Public License
+// * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// */
 package org.thoughtcrime.securesms.preferences;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -29,15 +44,10 @@ import com.google.api.client.json.gson.GsonFactory;
 
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
-import com.google.api.services.drive.model.FileList;
 
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
 import org.signal.core.util.logging.Log;
 
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.backup.FullBackupBase;
 import org.thoughtcrime.securesms.jobs.GoogleDriveBackupJob;
 import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.util.BackupUtil;
@@ -46,7 +56,6 @@ import org.thoughtcrime.securesms.util.GoogleDriveServiceHelper;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Fragment for Google Drive Sign in and Backup Button.
@@ -147,7 +156,7 @@ public class GoogleDriveBackupFragment extends Fragment {
     @RequiresApi(29)
     private void onBackupClickedApi29() {
         Log.i(TAG, "Queuing drive backup...");
-        GoogleDriveBackupJob.enqueue(true, requireContext());
+        GoogleDriveBackupJob.enqueue(true);
     }
 
     private void onBackupClickedLegacy() {
@@ -156,7 +165,7 @@ public class GoogleDriveBackupFragment extends Fragment {
                 .ifNecessary()
                 .onAllGranted(() -> {
                     Log.i(TAG, "Queuing drive backup...");
-                    GoogleDriveBackupJob.enqueue(true, requireContext());
+                    GoogleDriveBackupJob.enqueue(true);
                 })
                 .withPermanentDenialDialog(getString(R.string.BackupsPreferenceFragment_signal_requires_external_storage_permission_in_order_to_create_backups))
                 .execute();
@@ -188,7 +197,7 @@ public class GoogleDriveBackupFragment extends Fragment {
         GoogleSignInOptions signInOptions =
                 new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestEmail()
-                        .requestScopes(new Scope(DriveScopes.DRIVE_FILE))
+                        .requestScopes(new Scope(DriveScopes.DRIVE_APPDATA))
                         .build();
         GoogleSignInClient client = GoogleSignIn.getClient(requireActivity(), signInOptions);
 
@@ -206,7 +215,7 @@ public class GoogleDriveBackupFragment extends Fragment {
                 .addOnSuccessListener(googleAccount -> {
                     Log.d(TAG, "Authenticated with email: " + googleAccount.getEmail());
                     // Use the authenticated account to sign in to the Drive service.
-                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(getActivity(), Collections.singleton(DriveScopes.DRIVE_FILE));
+                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(getActivity(), Collections.singleton(DriveScopes.DRIVE_APPDATA));
                     credential.setSelectedAccount(googleAccount.getAccount());
                     HttpTransport transport            = AndroidHttp.newCompatibleTransport();
                     Drive googleDriveService           = new Drive.Builder(transport, new GsonFactory(), credential)

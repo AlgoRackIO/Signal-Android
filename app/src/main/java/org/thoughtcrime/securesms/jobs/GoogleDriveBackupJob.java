@@ -17,12 +17,14 @@
 package org.thoughtcrime.securesms.jobs;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.net.Uri;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
+
+import com.google.api.services.drive.model.File;
 
 import org.signal.core.util.logging.Log;
 import org.thoughtcrime.securesms.R;
@@ -44,15 +46,17 @@ import org.thoughtcrime.securesms.service.NotificationController;
 import org.thoughtcrime.securesms.util.BackupUtil;
 import org.thoughtcrime.securesms.util.GoogleDriveServiceHelper;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 
+/**
+ * Mostly re-uses code from {@link LocalBackupJob} which has been modified to create
+ * encrypted backup and upload it to Google Drive Storage
+ */
 public class GoogleDriveBackupJob extends BaseJob {
     private static final String TAG                     = Log.tag(GoogleDriveBackupJob.class);
     public static final String KEY                      = "GoogleDriveBackupJob";
@@ -62,15 +66,12 @@ public class GoogleDriveBackupJob extends BaseJob {
     public static final String TEMP_BACKUP_FILE_PREFIX  = ".backup";
     public static final String TEMP_BACKUP_FILE_SUFFIX  = ".tmp";
 
-    private static Context fragmentContext;
-
     private GoogleDriveBackupJob(@NonNull Job.Parameters parameters) {
         super(parameters);
     }
 
-    public static void enqueue(boolean force, @NonNull Context context) {
+    public static void enqueue(boolean force) {
         GoogleDriveBackupFragment.setSpinning();
-        fragmentContext                 = context;
         JobManager jobManager           = ApplicationDependencies.getJobManager();
         Parameters.Builder parameters   = new Parameters.Builder()
                 .setQueue(QUEUE)
@@ -142,37 +143,26 @@ public class GoogleDriveBackupJob extends BaseJob {
                         backupPassword);
 
                 try {
-                    InputStream stream = context.getContentResolver().openInputStream(temporaryFile.getUri());
+                    // Open stream to temporary file to upload it to Drive Storage
+                    InputStream tempFileStream = context.getContentResolver().openInputStream(temporaryFile.getUri());
 
-                    OutputStream buffer = new ByteArrayOutputStream();
+                    GoogleDriveServiceHelper serviceHelper = GoogleDriveServiceHelper.getServiceHelper();
 
-                    int nRead;
-                    byte[] data = new byte[16384];
-//
-                    while ((nRead = stream.read(data, 0, data.length)) != -1) {
-                        buffer.write(data, 0, nRead);
-                    }
+                    deleteOldDriveBackups(serviceHelper);
 
-                    stream.close();
-
-                    GoogleDriveServiceHelper.serviceHelper.queryFilesSync()
-                            .addOnSuccessListener(fileList -> {
-                                fileList.getFiles().forEach(file -> {
-                                    GoogleDriveServiceHelper.serviceHelper.deleteFileSync(file.getId());
-                                });
-                            });
-
-                    GoogleDriveServiceHelper.serviceHelper.createFile(fileName, buffer)
+                    serviceHelper.createFile(fileName, tempFileStream)
                             .addOnSuccessListener(id -> {
                                 Log.i(TAG, "Successfully uploaded backup to google drive");
-                                Log.i(TAG, "Deleting locally created file now... " + temporaryFile.delete());
-                                Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_success, Toast.LENGTH_LONG).show();
-                                GoogleDriveBackupFragment.cancelSpinning();
+                                Toast.makeText(context, R.string.GoogleDriveBackupFragment__google_drive_backup_success, Toast.LENGTH_LONG).show();
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(fragmentContext, R.string.GoogleDriveBackupFragment__google_drive_backup_fail, Toast.LENGTH_LONG).show();
+                                Toast.makeText(context, R.string.GoogleDriveBackupFragment__google_drive_backup_fail, Toast.LENGTH_LONG).show();
                                 Log.e(TAG, e);
                                 e.printStackTrace();
+                            })
+                            .addOnCompleteListener(unused -> {
+                                Log.i(TAG, "Deleting locally created file now... " + temporaryFile.delete());
+                                GoogleDriveBackupFragment.cancelSpinning();
                             });
                 } catch (IOException e) {
                     Log.e(TAG, e);
@@ -197,12 +187,27 @@ public class GoogleDriveBackupJob extends BaseJob {
                 }
             }
 
-            BackupUtil.deleteOldBackups();
+//            BackupUtil.deleteOldBackups();
         }
     }
 
+    /**
+     * Deletes previous backup files uploaded to Google Drive
+     * Requires {@link GoogleDriveServiceHelper} to access drive sdk and delete the corresponding files.
+     */
+    @RequiresApi(24)
+    private static void deleteOldDriveBackups(GoogleDriveServiceHelper serviceHelper) {
+        serviceHelper.queryFilesSync()
+                .addOnSuccessListener(fileList -> {
+                    fileList.getFiles().stream().map(File::getId).forEach(fileId -> serviceHelper.deleteFileSync(fileId)
+                            .addOnSuccessListener(unused -> {
+                                Log.i(TAG, "Successfully deleted file with id: " + fileId);
+                            }).addOnFailureListener(e -> {
+                                Log.e(TAG, "Error deleting file with id: " + fileId);
+                            }));
+                });
+    }
 
-    // TODO: Delete temporary old/temp backups from Google Drive as well.
     private static void deleteOldTemporaryBackups(@NonNull DocumentFile backupDirectory) {
         for (DocumentFile file : backupDirectory.listFiles()) {
             if (file.isFile()) {

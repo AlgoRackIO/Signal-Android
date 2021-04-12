@@ -385,7 +385,7 @@
     <!-- GoogleDriveSignInFragment -->
     <string name="GoogleDriveSignInFragment__google_drive_sign_in_title">Sign in to Google Drive?</string>
     <string name="GoogleDriveSignInFragment__google_drive_sign_in">Sign in</string>
-    <string name="GoogleDriveSignInFragment__google_drive_sign_in_message">Sign in to be able to restore your backup from Google Drive.</string>
+    <string name="GoogleDriveSignInFragment__google_drive_sign_in_message">Sign in to restore your backup from Google Drive.</string>
 
     <!-- GoogleDriveRestoreFragment -->
     <string name="GoogleDriveSignInFragment__google_drive_restore_backup_found">Backup Found!</string>

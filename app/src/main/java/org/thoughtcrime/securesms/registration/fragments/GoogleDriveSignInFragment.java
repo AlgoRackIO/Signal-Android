@@ -1,8 +1,23 @@
+///**
+// * Copyright (C) 2011 Whisper Systems
+// *
+// * This program is free software: you can redistribute it and/or modify
+// * it under the terms of the GNU General Public License as published by
+// * the Free Software Foundation, either version 3 of the License, or
+// * (at your option) any later version.
+// *
+// * This program is distributed in the hope that it will be useful,
+// * but WITHOUT ANY WARRANTY; without even the implied warranty of
+// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// * GNU General Public License for more details.
+// *
+// * You should have received a copy of the GNU General Public License
+// * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// */
 package org.thoughtcrime.securesms.registration.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,7 +25,6 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
@@ -34,17 +48,14 @@ import java.util.Collections;
 
 public class GoogleDriveSignInFragment extends Fragment {
     private static final String TAG = Log.tag(GoogleDriveSignInFragment.class);
-    private GoogleDriveServiceHelper serviceHelper;
 
     private static final int REQUEST_CODE_SIGN_IN = 1;
-//    private static final int REQUEST_CODE_OPEN_DOCUMENT = 2;
     private static final int REQUEST_CODE_COMPLETE_AUTHORIZATION = 3;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_registration_google_drive_restore_signin, container, false);
-//        return super.onCreateView(inflater, container, savedInstanceState);
     }
 
     @Override
@@ -80,23 +91,16 @@ public class GoogleDriveSignInFragment extends Fragment {
         GoogleSignIn.getSignedInAccountFromIntent(result)
                 .addOnSuccessListener(googleAccount -> {
                     Log.d(TAG, "Signed in successfully as: " + googleAccount.getEmail());
-
-//                    setButtonsVisibility();
                     // Use the authenticated account to sign in to the Drive service.
-                    GoogleAccountCredential credential =
-                            GoogleAccountCredential.usingOAuth2(
-                                    getActivity(), Collections.singleton(DriveScopes.DRIVE_FILE)
-                            );
+                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                            getActivity(), Collections.singleton(DriveScopes.DRIVE_APPDATA)
+                    );
                     credential.setSelectedAccount(googleAccount.getAccount());
                     Log.d(TAG, "Account Set with name: " + credential.getSelectedAccount().name);
                     HttpTransport transport = AndroidHttp.newCompatibleTransport();
                     Drive googleDriveService =
                             new Drive.Builder(
-//                                    new NetHttpTransport(),
-//                                    AndroidHttp.newCompatibleTransport(),
                                     transport,
-
-//                                    new ApacheHttpTransport(),
                                     new GsonFactory(),
                                     credential)
                                     .setApplicationName("Signal")
@@ -104,7 +108,7 @@ public class GoogleDriveSignInFragment extends Fragment {
 
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
                     // Its instantiation is required before handling any onClick actions.
-                    serviceHelper = GoogleDriveServiceHelper.createServiceHelper(googleDriveService);
+                    GoogleDriveServiceHelper.createServiceHelper(googleDriveService);
                     Navigation.findNavController(requireView()).navigate(GoogleDriveSignInFragmentDirections.actionRestoreFromDrive());
                 })
                 .addOnFailureListener(exception -> Log.e(TAG, "Unable to sign in.", exception));
@@ -119,7 +123,7 @@ public class GoogleDriveSignInFragment extends Fragment {
         GoogleSignInOptions signInOptions =
                 new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestEmail()
-                        .requestScopes(new Scope(DriveScopes.DRIVE_FILE))
+                        .requestScopes(new Scope(DriveScopes.DRIVE_APPDATA))
                         .build();
         GoogleSignInClient client = GoogleSignIn.getClient(requireActivity(), signInOptions);
 
